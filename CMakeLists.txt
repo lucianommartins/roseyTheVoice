@@ -217,6 +217,9 @@ if(RTV_BUILD_TESTS)
     
     add_executable(rtv_llm_test tests/llm/test_llm.cpp)
     target_link_libraries(rtv_llm_test PRIVATE rtv_core)
+    
+    add_executable(rtv_tts_test tests/tts/test_tts.cpp)
+    target_link_libraries(rtv_tts_test PRIVATE rtv_core)
 endif()
 
 # =============================================================================

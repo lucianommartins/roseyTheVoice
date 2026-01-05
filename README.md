@@ -31,6 +31,7 @@
 
 ### Software
 - Linux (Ubuntu 22.04+ recomendado)
+- Python 3.9 a 3.11 (requerido pelo modulo TTS)
 - CMake 3.20+
 - GCC 11+ ou Clang 14+
 - Docker e Docker Compose
@@ -59,6 +60,10 @@ sudo apt install -y \
 pip install huggingface_hub[cli]
 hf login  # inserir token do HuggingFace
 
+# Coqui TTS XTTS v2 (sintese de voz com clonagem)
+# Requer versoes especificas para compatibilidade
+pip install TTS torch==2.1.0 torchaudio==2.1.0 transformers==4.39.3
+
 # libfvad (compilar manualmente)
 git clone https://github.com/dpirch/libfvad.git
 cd libfvad
@@ -74,7 +79,7 @@ g++ --version     # >= 11
 ### 2. Clonar o Repositório
 
 ```bash
-git clone https://github.com/SEU_USUARIO/roseyTheVoice.git
+git clone https://github.com/lucianommartins/roseyTheVoice.git
 cd roseyTheVoice
 ```
 
@@ -84,17 +89,33 @@ cd roseyTheVoice
 # Whisper (STT) - ~181MB
 ./scripts/download_models.sh whisper
 
-# Piper (TTS) - ~50MB
-./scripts/download_models.sh piper
+# Gemma 3 12B (LLM) - ~7GB (requer aceitar licença no HuggingFace primeiro)
+# Acesse: https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-gguf
+./scripts/download_models.sh gemma
+
+# XTTS v2 (TTS) - ~1.5GB + audio de referencia para voz
+./scripts/download_models.sh tts
+
+# Ou baixar todos de uma vez:
+./scripts/download_models.sh all
 ```
 
-**Modelos Gemma** (download manual):
+**Nota sobre TTS**: O XTTS v2 usa clonagem de voz. Voce precisa fornecer um audio
+de referencia da voz desejada:
 
-1. Acesse [Hugging Face](https://huggingface.co/google) ou [Kaggle](https://www.kaggle.com/models/google)
-2. Baixe as versões GGUF:
-   - `gemma-3-12b-it-q4_k_m.gguf` -> `models/gemma/`
-   - `function-gemma-270m.gguf` -> `models/gemma/`
-   - `embedding-gemma-308m.gguf` -> `models/gemma/`
+```bash
+# Opcao 1: Gravar com microfone (10-15 segundos de fala clara)
+arecord -d 15 -f S16_LE -r 22050 models/tts/reference_voice.wav
+
+# Opcao 2: Converter audio existente para WAV
+ffmpeg -i seu_audio.mp3 -ar 22050 -ac 1 models/tts/reference_voice.wav
+```
+
+**Requisitos do audio de referencia:**
+- Duracao: 6-30 segundos
+- Conteudo: fala clara, sem musica ou ruido
+- Formato: WAV 16-bit
+- Local: `models/tts/reference_voice.wav`
 
 ### 4. Compilar
 
