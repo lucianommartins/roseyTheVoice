@@ -38,6 +38,21 @@ if(NOT aec3_POPULATED)
     FetchContent_Populate(aec3)
 endif()
 
+# whisper.cpp - Speech-to-Text (OpenAI Whisper port)
+FetchContent_Declare(
+    whisper
+    GIT_REPOSITORY https://github.com/ggerganov/whisper.cpp.git
+    GIT_TAG v1.7.4
+    GIT_SHALLOW TRUE
+)
+
+set(WHISPER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+message(STATUS "Fetching whisper.cpp...")
+FetchContent_MakeAvailable(whisper)
+
 # =============================================================================
 # Build AEC3 library from sources
 # =============================================================================
@@ -141,6 +156,7 @@ target_link_libraries(rtv_core PUBLIC
     ${PORTAUDIO_LIBRARIES}
     ${FVAD_LIBRARIES}
     aec3_lib
+    whisper
 )
 
 # =============================================================================
@@ -171,6 +187,9 @@ if(RTV_BUILD_TESTS)
     
     add_executable(rtv_audio_test tests/audio/test_audio.cpp)
     target_link_libraries(rtv_audio_test PRIVATE rtv_core)
+    
+    add_executable(rtv_live_transcription tests/integration/test_live_transcription.cpp)
+    target_link_libraries(rtv_live_transcription PRIVATE rtv_core)
 endif()
 
 # =============================================================================

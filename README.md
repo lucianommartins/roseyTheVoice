@@ -11,14 +11,14 @@
 
 | Funcionalidade | Tecnologia |
 |----------------|------------|
-| 🎙️ Wake Word | OpenWakeWord ("Hey Rosey") |
-| 🗣️ Fala para Texto | Whisper Medium (otimizado para PT-BR) |
-| 🧠 Conversação | Gemma 3 12B |
-| ⚡ Detecção de Ações | FunctionGemma 270M |
-| 📊 Embeddings RAG | EmbeddingGemma 308M |
-| 🔊 Texto para Fala | Piper TTS (offline) |
-| 🔇 Barge-in | WebRTC AEC3 |
-| 📴 Modo Offline | Cache SQLite (email/calendário) |
+| Wake Word | OpenWakeWord ("Hey Rosey") |
+| Fala para Texto | Whisper Small Q5 (PT-BR) |
+| Conversação | Gemma 3 12B |
+| Detecção de Ações | FunctionGemma 270M |
+| Embeddings RAG | EmbeddingGemma 308M |
+| Texto para Fala | Piper TTS (offline) |
+| Barge-in | WebRTC AEC3 |
+| Modo Offline | Cache SQLite (email/calendário) |
 
 ---
 
@@ -51,9 +51,15 @@ sudo apt install -y \
     libboost-all-dev \
     libsqlite3-dev \
     portaudio19-dev \
-    libfvad-dev \
     libfftw3-dev \
     curl
+
+# libfvad (compilar manualmente)
+git clone https://github.com/dpirch/libfvad.git
+cd libfvad
+autoreconf -i && ./configure && make && sudo make install
+sudo ldconfig
+cd ..
 
 # Verificar
 cmake --version   # >= 3.20
@@ -70,20 +76,20 @@ cd roseyTheVoice
 ### 3. Baixar Modelos
 
 ```bash
-# Whisper (STT) - ~950MB
-./scripts/download_models.sh whisper-medium
+# Whisper (STT) - ~181MB
+./scripts/download_models.sh whisper
 
 # Piper (TTS) - ~50MB
-./scripts/download_models.sh piper-ptbr
+./scripts/download_models.sh piper
 ```
 
 **Modelos Gemma** (download manual):
 
 1. Acesse [Hugging Face](https://huggingface.co/google) ou [Kaggle](https://www.kaggle.com/models/google)
 2. Baixe as versões GGUF:
-   - `gemma-3-12b-it-q4_k_m.gguf` → `models/gemma/`
-   - `function-gemma-270m.gguf` → `models/gemma/`
-   - `embedding-gemma-308m.gguf` → `models/gemma/`
+   - `gemma-3-12b-it-q4_k_m.gguf` -> `models/gemma/`
+   - `function-gemma-270m.gguf` -> `models/gemma/`
+   - `embedding-gemma-308m.gguf` -> `models/gemma/`
 
 ### 4. Compilar
 
@@ -93,7 +99,25 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j$(nproc)
 ```
 
-### 5. Iniciar Servidores LLM
+### 5. Testar Audio Pipeline
+
+```bash
+# Da raiz do projeto (onde está a pasta models/)
+./build/test_ring_buffer
+./build/test_aec3_pipeline
+./build/rtv_audio_test
+```
+
+### 6. Testar Speech-to-Text
+
+```bash
+# Transcrição ao vivo do microfone
+./build/rtv_live_transcription
+# Fale no microfone e veja a transcrição
+# Ctrl+C para sair
+```
+
+### 7. Iniciar Servidores LLM (em breve)
 
 ```bash
 # Subir containers Docker (Gemma 12B, FunctionGemma, EmbeddingGemma)
@@ -101,13 +125,12 @@ docker-compose up -d
 
 # Verificar
 docker-compose ps
-# Todos os containers devem mostrar "healthy"
 ```
 
-### 6. Executar
+### 8. Executar
 
 ```bash
-./build/bin/rtv --wake-word "hey rosey"
+./build/rtv
 ```
 
 ---
@@ -115,20 +138,20 @@ docker-compose ps
 ## Arquitetura
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      ROSEY THE VOICE (RTV)                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  [Mic] → AEC3 → VAD → Whisper → FunctionGemma → Executor        │
-│                                       ↓                          │
-│                              Gemma 3 12B → Piper → [Speaker]     │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------+
+|                      ROSEY THE VOICE (RTV)                        |
++-------------------------------------------------------------------+
+|                                                                   |
+|  [Mic] -> AEC3 -> VAD -> Whisper -> FunctionGemma -> Executor     |
+|                                          |                        |
+|                               Gemma 3 12B -> Piper -> [Speaker]   |
+|                                                                   |
++-------------------------------------------------------------------+
 ```
 
-### Módulos
+### Modulos
 
-| Módulo | Descrição |
+| Modulo | Descricao |
 |--------|-----------|
 | `audio/` | PortAudio, AEC3, VAD, Ring Buffer |
 | `stt/` | Wrapper para Whisper.cpp |
@@ -136,28 +159,28 @@ docker-compose ps
 | `tts/` | Piper TTS |
 | `cache/` | SQLite para modo offline |
 | `ipc/` | Shared memory (boost::interprocess) |
-| `orchestrator/` | Máquina de estados principal |
+| `orchestrator/` | Maquina de estados principal |
 
 ---
 
-## Ações Suportadas
+## Acoes Suportadas
 
-| Ação | Descrição | Requer Online |
+| Acao | Descricao | Requer Online |
 |------|-----------|---------------|
-| `play_music` | Tocar no YouTube Music | ✅ |
-| `check_calendar` | Listar compromissos | ❌ (cache) |
-| `add_calendar_event` | Criar evento | ✅ |
-| `send_email` | Enviar via Gmail | ✅ |
-| `check_email` | Listar emails | ❌ (cache) |
-| `search_web` | Buscar no Google | ✅ |
-| `get_weather` | Previsão do tempo | ✅ |
-| `control_media` | Play/pause/volume | ❌ |
+| `play_music` | Tocar no YouTube Music | Sim |
+| `check_calendar` | Listar compromissos | Nao (cache) |
+| `add_calendar_event` | Criar evento | Sim |
+| `send_email` | Enviar via Gmail | Sim |
+| `check_email` | Listar emails | Nao (cache) |
+| `search_web` | Buscar no Google | Sim |
+| `get_weather` | Previsao do tempo | Sim |
+| `control_media` | Play/pause/volume | Nao |
 
 ---
 
-## Configuração
+## Configuracao
 
-### Variáveis de Ambiente
+### Variaveis de Ambiente
 
 ```bash
 export RTV_WAKE_WORD="hey rosey"
@@ -171,7 +194,7 @@ export RTV_LOG_LEVEL="info"
 2. Ative as APIs: Calendar, Gmail, YouTube Data, Custom Search
 3. Crie credenciais OAuth 2.0
 4. Salve `credentials.json` na raiz do projeto
-5. Execute o RTV e autorize na primeira execução
+5. Execute o RTV e autorize na primeira execucao
 
 ---
 
@@ -207,7 +230,20 @@ roseyTheVoice/
 
 ---
 
-## Licença
+## Status de Implementacao
+
+| Fase | Componente | Status |
+|------|------------|--------|
+| 1 | Core Setup (CMake, Deps) | Completo |
+| 2 | Audio Pipeline (PortAudio, VAD, AEC3) | Completo |
+| 3 | Speech-to-Text (whisper.cpp) | Completo |
+| 4 | LLM Integration | Pendente |
+| 5 | Text-to-Speech (Piper) | Pendente |
+| 6 | Orchestrator | Pendente |
+
+---
+
+## Licenca
 
 Apache 2.0 - Veja [LICENSE](LICENSE)
 
