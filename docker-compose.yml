@@ -1,0 +1,85 @@
+# Rosey The Voice - Docker Compose
+# LLM servers via llama.cpp
+
+version: '3.8'
+
+services:
+  # Gemma 3 12B - Main conversation model
+  gemma-12b:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    container_name: rtv_gemma_12b
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models/gemma:/models
+    command: >
+      --model /models/gemma-3-12b-it-q4_k_m.gguf
+      --ctx-size 8192
+      --threads 8
+      --host 0.0.0.0
+      --port 8080
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # FunctionGemma 270M - Action detection
+  function-gemma:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    container_name: rtv_function_gemma
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./models/gemma:/models
+    command: >
+      --model /models/function-gemma-270m.gguf
+      --ctx-size 4096
+      --threads 4
+      --host 0.0.0.0
+      --port 8080
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # EmbeddingGemma 308M - RAG embeddings
+  embedding-gemma:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    container_name: rtv_embedding_gemma
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./models/gemma:/models
+    command: >
+      --model /models/embedding-gemma-308m.gguf
+      --ctx-size 2048
+      --threads 4
+      --embedding
+      --host 0.0.0.0
+      --port 8080
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: rtv_network
