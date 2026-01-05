@@ -53,6 +53,27 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 message(STATUS "Fetching whisper.cpp...")
 FetchContent_MakeAvailable(whisper)
 
+# cpp-httplib - Header-only HTTP library
+FetchContent_Declare(
+    httplib
+    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+    GIT_TAG v0.15.3
+    GIT_SHALLOW TRUE
+)
+message(STATUS "Fetching cpp-httplib...")
+FetchContent_MakeAvailable(httplib)
+
+# nlohmann_json - JSON library
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+    GIT_SHALLOW TRUE
+)
+set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+message(STATUS "Fetching nlohmann_json...")
+FetchContent_MakeAvailable(json)
+
 # =============================================================================
 # Build AEC3 library from sources
 # =============================================================================
@@ -134,6 +155,7 @@ add_library(rtv_core STATIC
     src/audio/RingBuffer.cpp
     src/audio/VADProcessor.cpp
     src/stt/STTEngine.cpp
+    src/llm/LLMClient.cpp
     src/llm/ActionDetector.cpp
     src/llm/ConversationEngine.cpp
     src/llm/EmbeddingEngine.cpp
@@ -157,6 +179,8 @@ target_link_libraries(rtv_core PUBLIC
     ${FVAD_LIBRARIES}
     aec3_lib
     whisper
+    httplib::httplib
+    nlohmann_json::nlohmann_json
 )
 
 # =============================================================================
@@ -190,6 +214,9 @@ if(RTV_BUILD_TESTS)
     
     add_executable(rtv_live_transcription tests/integration/test_live_transcription.cpp)
     target_link_libraries(rtv_live_transcription PRIVATE rtv_core)
+    
+    add_executable(rtv_llm_test tests/llm/test_llm.cpp)
+    target_link_libraries(rtv_llm_test PRIVATE rtv_core)
 endif()
 
 # =============================================================================

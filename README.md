@@ -39,7 +39,7 @@
 
 ## Início Rápido
 
-### 1. Instalar Dependências do Sistema
+### 1. Instalar Dependencias do Sistema
 
 ```bash
 # Ubuntu/Debian
@@ -52,7 +52,12 @@ sudo apt install -y \
     libsqlite3-dev \
     portaudio19-dev \
     libfftw3-dev \
+    python3-pip \
     curl
+
+# HuggingFace CLI (para baixar modelos Gemma)
+pip install huggingface_hub[cli]
+hf login  # inserir token do HuggingFace
 
 # libfvad (compilar manualmente)
 git clone https://github.com/dpirch/libfvad.git

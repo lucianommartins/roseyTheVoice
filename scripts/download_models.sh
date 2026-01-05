@@ -21,6 +21,22 @@ download_piper() {
     curl -L "$url/pt/pt_BR/faber/medium/pt_BR-faber-medium.onnx.json" -o "$MODELS_DIR/piper/pt_BR-faber-medium.onnx.json"
 }
 
+download_gemma() {
+    echo "Downloading Gemma 3 12B QAT Q4_0 GGUF (~7GB) from Google..."
+    echo ""
+    echo "Note: Gemma requires license acceptance at:"
+    echo "  https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-gguf"
+    echo ""
+    
+    # Download using hf CLI (uses stored token)
+    hf download \
+        google/gemma-3-12b-it-qat-q4_0-gguf \
+        gemma-3-12b-it-q4_0.gguf \
+        --local-dir "$MODELS_DIR/gemma"
+    
+    echo "Gemma 3 12B (Google official QAT) downloaded!"
+}
+
 case "$1" in
     whisper)
         download_whisper
@@ -28,13 +44,25 @@ case "$1" in
     piper)
         download_piper
         ;;
+    gemma)
+        download_gemma
+        ;;
     all)
         download_whisper
         download_piper
-        echo "Note: Gemma models require manual download from HuggingFace/Kaggle"
+        download_gemma
         ;;
     *)
-        echo "Usage: $0 {whisper|piper|all}"
+        echo "Usage: $0 {whisper|piper|gemma|all}"
+        echo ""
+        echo "Models:"
+        echo "  whisper  - Speech-to-Text (small-q5_1, ~181MB)"
+        echo "  piper    - Text-to-Speech PT-BR (~50MB)"
+        echo "  gemma    - Gemma 3 12B QAT Q4_0 from Google (~7GB)"
+        echo "  all      - Download all models"
+        echo ""
+        echo "Note: For gemma, you must first accept the license at:"
+        echo "  https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-gguf"
         exit 1
         ;;
 esac
