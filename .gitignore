@@ -11,6 +11,9 @@ models/gemma/*.bin
 models/gemma/*.gguf
 models/piper/*.onnx
 models/piper/*.onnx.json
+models/tts/*.wav
+models/greetings/*.wav
+models/sounds/*.wav
 
 # =============================================================================
 # Build outputs
@@ -107,3 +110,11 @@ logs/
 secrets/
 credentials.json
 token.json
+
+# =============================================================================
+# Porcupine Wake Word (API key + SDK binaries)
+# =============================================================================
+external/
+models/wakeword/*.ppn
+.porcupine_key
+porcupine.key

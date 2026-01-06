@@ -147,6 +147,20 @@ if(NOT FVAD_FOUND)
 endif()
 
 # =============================================================================
+# Porcupine Wake Word Detection
+# =============================================================================
+set(PORCUPINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/porcupine)
+if(EXISTS ${PORCUPINE_DIR}/lib/linux/x86_64/libpv_porcupine.so)
+    set(PORCUPINE_FOUND TRUE)
+    set(PORCUPINE_INCLUDE_DIR ${PORCUPINE_DIR}/include)
+    set(PORCUPINE_LIBRARY ${PORCUPINE_DIR}/lib/linux/x86_64/libpv_porcupine.so)
+    message(STATUS "Found Porcupine: ${PORCUPINE_LIBRARY}")
+else()
+    set(PORCUPINE_FOUND FALSE)
+    message(WARNING "Porcupine not found - wake word detection disabled")
+endif()
+
+# =============================================================================
 # Main Library
 # =============================================================================
 add_library(rtv_core STATIC
@@ -165,6 +179,14 @@ add_library(rtv_core STATIC
     src/ipc/SharedMemoryIPC.cpp
     src/orchestrator/Orchestrator.cpp
 )
+
+# Add WakeWordDetector if Porcupine is available
+if(PORCUPINE_FOUND)
+    target_sources(rtv_core PRIVATE src/wakeword/WakeWordDetector.cpp)
+    target_include_directories(rtv_core PUBLIC ${PORCUPINE_INCLUDE_DIR})
+    target_link_libraries(rtv_core PUBLIC ${PORCUPINE_LIBRARY})
+    target_compile_definitions(rtv_core PUBLIC RTV_HAS_PORCUPINE=1)
+endif()
 
 target_include_directories(rtv_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -188,6 +210,10 @@ target_link_libraries(rtv_core PUBLIC
 # =============================================================================
 add_executable(rtv src/main.cpp)
 target_link_libraries(rtv PRIVATE rtv_core)
+
+# Interactive demo
+add_executable(rtv_interactive src/rtv_interactive.cpp)
+target_link_libraries(rtv_interactive PRIVATE rtv_core)
 
 # =============================================================================
 # Tests
@@ -220,6 +246,9 @@ if(RTV_BUILD_TESTS)
     
     add_executable(rtv_tts_test tests/tts/test_tts.cpp)
     target_link_libraries(rtv_tts_test PRIVATE rtv_core)
+    
+    add_executable(rtv_orchestrator_test tests/orchestrator/test_orchestrator.cpp)
+    target_link_libraries(rtv_orchestrator_test PRIVATE rtv_core)
 endif()
 
 # =============================================================================

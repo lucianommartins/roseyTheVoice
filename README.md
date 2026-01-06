@@ -117,6 +117,64 @@ ffmpeg -i seu_audio.mp3 -ar 22050 -ac 1 models/tts/reference_voice.wav
 - Formato: WAV 16-bit
 - Local: `models/tts/reference_voice.wav`
 
+### 3b. Configurar Wake Word (Porcupine)
+
+O assistente usa Porcupine para deteccao de wake word "Hi Gemma".
+
+**Passo 1: Criar conta Picovoice**
+- Acesse [console.picovoice.ai](https://console.picovoice.ai/) e crie conta gratuita
+- Copie sua Access Key
+
+**Passo 2: Salvar Access Key**
+```bash
+echo "SUA_ACCESS_KEY_AQUI" > .porcupine_key
+```
+
+**Passo 3: Criar wake word customizado**
+- No console Picovoice, va em Porcupine > Custom Wake Word
+- Crie o modelo "Hi Gemma"
+- Baixe o arquivo `.ppn` para `models/wakeword/hi_gemma.ppn`
+
+**Passo 4: Copiar SDK Porcupine**
+```bash
+# Clonar repositorio (temporario)
+git clone https://github.com/Picovoice/porcupine.git /tmp/porcupine
+
+# Copiar arquivos necessarios
+mkdir -p external/porcupine/include external/porcupine/lib/linux/x86_64 external/porcupine/lib/common
+cp /tmp/porcupine/include/pv_porcupine.h external/porcupine/include/
+cp /tmp/porcupine/include/picovoice.h external/porcupine/include/
+cp /tmp/porcupine/lib/linux/x86_64/libpv_porcupine.so external/porcupine/lib/linux/x86_64/
+cp /tmp/porcupine/lib/common/porcupine_params.pv external/porcupine/lib/common/
+
+# Limpar
+rm -rf /tmp/porcupine
+```
+
+### 3c. Configurar Sons de Notificacao (Opcional)
+
+Sons para feedback auditivo (similar ao Alexa):
+
+```bash
+mkdir -p models/greetings models/sounds
+
+# Gerar saudacao pre-gravada (resposta instantanea ao wake word)
+python3 -c "
+from TTS.api import TTS
+tts = TTS('tts_models/multilingual/multi-dataset/xtts_v2')
+tts.tts_to_file('Olá! Como posso ajudar?', speaker_wav='models/tts/reference_voice.wav', language='pt', file_path='models/greetings/greeting_1.wav')
+"
+
+# Sons de notificacao podem ser baixados de:
+# - 101soundboards.com/boards/47904-alexa-device-sounds (UI - Wakesound, UI - Endpointing)
+# - Ou gerar tons simples com Python/sox
+```
+
+**Arquivos esperados:**
+- `models/greetings/greeting_1.wav` - Saudacao ao detectar wake word
+- `models/sounds/wake.wav` - Tom quando comeca a ouvir (opcional)
+- `models/sounds/sleep.wav` - Tom quando volta a dormir (opcional)
+
 ### 4. Compilar
 
 ```bash

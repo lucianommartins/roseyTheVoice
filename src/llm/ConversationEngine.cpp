@@ -15,7 +15,8 @@ static const char* DEFAULT_SYSTEM_PROMPT = R"(Voce e Rosey, uma assistente virtu
 Voce responde em portugues brasileiro de forma natural e concisa.
 Voce e eficiente e vai direto ao ponto, sem rodeios.
 Quando nao souber algo, admita honestamente.
-IMPORTANTE: Nunca use emojis nas suas respostas, pois elas serao lidas em voz alta.)";
+REGRA ABSOLUTA: NUNCA use emojis, emoticons ou simbolos especiais como ⚽🎉😊 nas suas respostas.
+Suas respostas serao convertidas em audio, entao use apenas texto simples.)";
 
 struct ConversationEngine::Impl {
     LLMClient client;
@@ -104,7 +105,7 @@ std::string ConversationEngine::chatStreaming(
     request.prompt = prompt;
     request.max_tokens = 512;
     request.temperature = 0.7f;
-    request.stop = {"<end_of_turn>", "Usuario:", "\n\n"};
+    request.stop = {"<end_of_turn>", "<start_of_turn>"};
     request.stream = true;
     
     auto response = impl_->client.completeStreaming(request, [&callback](const std::string& token) {

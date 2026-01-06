@@ -16,7 +16,7 @@
 namespace rtv::audio {
 
 // Playback buffer size (samples)
-constexpr size_t PLAYBACK_BUFFER_SIZE = 16000 * 10;  // 10 seconds at 16kHz
+constexpr size_t PLAYBACK_BUFFER_SIZE = 24000 * 10;  // 10 seconds at 24kHz
 
 // Forward declare Impl for callbacks
 struct AudioEngineImpl {
@@ -180,7 +180,7 @@ bool AudioEngine::start() {
         &pImpl_->outputStream,
         nullptr,  // No input for this stream
         &outputParams,
-        config_.sample_rate,
+        config_.output_sample_rate,  // 24kHz for TTS output
         config_.frames_per_buffer,
         paClipOff,
         outputCallback,
@@ -220,7 +220,8 @@ bool AudioEngine::start() {
     }
     
     pImpl_->running = true;
-    std::cout << "[AudioEngine] Started (sample_rate=" << config_.sample_rate 
+    std::cout << "[AudioEngine] Started (input=" << config_.sample_rate 
+              << "Hz, output=" << config_.output_sample_rate 
               << "Hz, buffer=" << config_.frames_per_buffer << " frames)" << std::endl;
     
     return true;

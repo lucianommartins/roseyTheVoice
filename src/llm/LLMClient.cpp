@@ -134,37 +134,43 @@ CompletionResponse LLMClient::completeStreaming(
                 line.pop_back();
             }
             
-            // Parse SSE "data: " prefix
+            // Skip empty lines
+            if (line.empty()) continue;
+            
+            std::string json_str = line;
+            
+            // Handle SSE format if present (data: prefix)
             if (line.rfind("data: ", 0) == 0) {
-                std::string json_str = line.substr(6);
+                json_str = line.substr(6);
+            }
+            
+            if (json_str == "[DONE]") {
+                response.stopped = true;
+                continue;
+            }
+            
+            try {
+                json data_json = json::parse(json_str);
+                std::string token = data_json.value("content", "");
                 
-                if (json_str == "[DONE]") {
+                if (!token.empty()) {
+                    full_content << token;
+                    response.tokens_generated++;
+                    
+                    // Call user callback with each token
+                    if (callback && !callback(token)) {
+                        should_stop = true;
+                        return false;
+                    }
+                }
+                
+                if (data_json.value("stop", false)) {
                     response.stopped = true;
-                    continue;
+                    response.stop_reason = data_json.value("stopping_word", "");
+                    std::cerr << "[LLM] Stopped with reason: " << response.stop_reason << std::endl;
                 }
-                
-                try {
-                    json data_json = json::parse(json_str);
-                    std::string token = data_json.value("content", "");
-                    
-                    if (!token.empty()) {
-                        full_content << token;
-                        response.tokens_generated++;
-                        
-                        // Call user callback with each token
-                        if (callback && !callback(token)) {
-                            should_stop = true;
-                            return false;
-                        }
-                    }
-                    
-                    if (data_json.value("stop", false)) {
-                        response.stopped = true;
-                        response.stop_reason = data_json.value("stopping_word", "");
-                    }
-                } catch (...) {
-                    // Ignore parse errors in streaming (partial JSON)
-                }
+            } catch (const std::exception& e) {
+                std::cerr << "[LLM] Parse error: " << e.what() << " - data: " << json_str.substr(0, 100) << std::endl;
             }
         }
         
